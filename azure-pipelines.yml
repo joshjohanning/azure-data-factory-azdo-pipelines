@@ -29,6 +29,7 @@ stages:
           steps:
           - checkout: self
           - task: AzurePowerShell@5
+            displayName: Stop triggers
             inputs:
               azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
               ScriptType: 'InlineScript'
@@ -51,6 +52,16 @@ stages:
               csmParametersFile: 'JoshTestADF1/ARMTemplateParametersForFactory.json'
               overrideParameters: '-factoryName "$(dataFactoryName)"'
               deploymentMode: 'Incremental'
+
+          - task: AzurePowerShell@5
+            displayName: Start triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Start-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
 
 
 - stage: Prod
