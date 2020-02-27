@@ -35,7 +35,7 @@ stages:
               scriptLocation: 'inlineScript'
               inlineScript: |
                 write-host $(dataFactoryName)
-                Install-Module -Name Az.DataFactory -RequiredVersion 1.6.0 -force –AcceptLicense
+                Install-Module -Name Az.DataFactory -RequiredVersion 1.6.0 -force
                 az account show
                 #$triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
                 #$triggersADF | ForEach-Object { Stop-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
