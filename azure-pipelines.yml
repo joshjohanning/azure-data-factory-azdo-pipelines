@@ -20,6 +20,7 @@ stages:
     variables:
       environment: qa
 
+    environment: AzureDataFactory.QA
     strategy:
       runOnce:    #rolling, canary are the other strategies that are supported
         deploy:
@@ -46,6 +47,7 @@ stages:
     variables:
       environment: Prod
 
+    environment: AzureDataFactory.Prod
     strategy:
       runOnce:    #rolling, canary are the other strategies that are supported
         deploy:
