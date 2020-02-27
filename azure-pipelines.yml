@@ -9,6 +9,9 @@
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  environment: qa
+
 steps:
 - script: echo Hello, world!
   displayName: 'Run a one-line script'
@@ -19,3 +22,16 @@ steps:
   displayName: 'Run a multi-line script'
 
 
+- task: AzureResourceManagerTemplateDeployment@3
+  inputs:
+    deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+    subscriptionId: '93ddb8b3-ddb9-4d1c-ba59-421456e65538'
+    action: 'Create Or Update Resource Group'
+    resourceGroupName: 'ADF-Test'
+    location: 'East US 2'
+    templateLocation: 'Linked artifact'
+    csmFile: 'JoshTestADF1/ARMTemplateForFactory.json'
+    csmParametersFile: 'JoshTestADF1/ARMTemplateParametersForFactory.json'
+    overrideParameters: '-factoryName "JoshTestADF1-$(environment)"'
+    deploymentMode: 'Incremental'
