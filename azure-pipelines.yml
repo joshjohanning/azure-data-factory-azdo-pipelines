@@ -19,7 +19,7 @@ stages:
   - deployment: Deploy
     variables:
       environment: qa
-      dataFactoryName: JoshTestADF1-${{ variables.environment }}
+      dataFactoryName: JoshTestADF1-$(environment)
       resourceGroupName: ADF-Test
 
     environment: AzureDataFactory-QA
