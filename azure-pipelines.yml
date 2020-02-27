@@ -5,20 +5,117 @@
 
 trigger:
   branches:
+    include: 
+    - adf_publish
     exclude:
     - master
-    - adf_publish
+
+resources:
+  repositories:
+  - repository: AzureDataFactory
+    type: git
+    name: AzureDataFactory
+    ref: adf_publish
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: 'windows-latest'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+stages:
+- stage: QA
+  jobs:
+  - deployment: Deploy
+    variables:
+      environment: qa
+      dataFactoryName: JoshTestADF1-$(environment)
+      resourceGroupName: ADF-Test
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    environment: AzureDataFactory-QA
+    strategy:
+      runOnce:    #rolling, canary are the other strategies that are supported
+        deploy:
+          steps:
+          - checkout: AzureDataFactory
+          - task: AzurePowerShell@5
+            displayName: Stop triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                Install-Module -Name Az.DataFactory -RequiredVersion 1.6.0 -force
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Stop-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
+
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              subscriptionId: '93ddb8b3-ddb9-4d1c-ba59-421456e65538'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'ADF-Test'
+              location: 'East US 2'
+              templateLocation: 'Linked artifact'
+              csmFile: 'JoshTestADF1/ARMTemplateForFactory.json'
+              csmParametersFile: 'JoshTestADF1/ARMTemplateParametersForFactory.json'
+              overrideParameters: '-factoryName "$(dataFactoryName)"'
+              deploymentMode: 'Incremental'
+
+          - task: AzurePowerShell@5
+            displayName: Start triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Start-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
 
 
+- stage: Prod
+  jobs:
+  - deployment: Deploy
+    variables:
+      environment: Prod
+      dataFactoryName: JoshTestADF1-$(environment)
+      resourceGroupName: ADF-Test
+
+    environment: AzureDataFactory-Prod
+    strategy:
+      runOnce:    #rolling, canary are the other strategies that are supported
+        deploy:
+          steps:
+          - checkout: AzureDataFactory
+          - task: AzurePowerShell@5
+            displayName: Stop triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                Install-Module -Name Az.DataFactory -RequiredVersion 1.6.0 -force
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Stop-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
+
+          - task: AzureResourceManagerTemplateDeployment@3
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              subscriptionId: '93ddb8b3-ddb9-4d1c-ba59-421456e65538'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'ADF-Test'
+              location: 'East US 2'
+              templateLocation: 'Linked artifact'
+              csmFile: 'JoshTestADF1/ARMTemplateForFactory.json'
+              csmParametersFile: 'JoshTestADF1/ARMTemplateParametersForFactory.json'
+              overrideParameters: '-factoryName "$(dataFactoryName)"'
+              deploymentMode: 'Incremental'
+
+          - task: AzurePowerShell@5
+            displayName: Start triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Start-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
