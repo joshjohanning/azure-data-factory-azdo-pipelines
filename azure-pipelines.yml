@@ -69,6 +69,8 @@ stages:
   - deployment: Deploy
     variables:
       environment: Prod
+      dataFactoryName: JoshTestADF1-$(environment)
+      resourceGroupName: ADF-Test
 
     environment: AzureDataFactory-Prod
     strategy:
@@ -76,6 +78,17 @@ stages:
         deploy:
           steps:
           - checkout: self
+          - task: AzurePowerShell@5
+            displayName: Stop triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                Install-Module -Name Az.DataFactory -RequiredVersion 1.6.0 -force
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Stop-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
+
           - task: AzureResourceManagerTemplateDeployment@3
             inputs:
               deploymentScope: 'Resource Group'
@@ -87,5 +100,15 @@ stages:
               templateLocation: 'Linked artifact'
               csmFile: 'JoshTestADF1/ARMTemplateForFactory.json'
               csmParametersFile: 'JoshTestADF1/ARMTemplateParametersForFactory.json'
-              overrideParameters: '-factoryName "JoshTestADF1-$(environment)"'
+              overrideParameters: '-factoryName "$(dataFactoryName)"'
               deploymentMode: 'Incremental'
+
+          - task: AzurePowerShell@5
+            displayName: Start triggers
+            inputs:
+              azureSubscription: 'Visual Studio Enterprise – MPN(93ddb8b3-ddb9-4d1c-ba59-421456e65538)'
+              ScriptType: 'InlineScript'
+              Inline: |
+                $triggersADF = Get-AzDataFactoryV2Trigger -DataFactoryName $(dataFactoryName) -ResourceGroupName $(resourceGroupName)
+                $triggersADF | ForEach-Object { Start-AzDataFactoryV2Trigger -ResourceGroupName $(resourceGroupName) -DataFactoryName $(dataFactoryName) -Name $_.name -Force }
+              preferredAzurePowerShellVersion: '3.1.0'
